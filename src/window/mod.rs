@@ -1,17 +1,18 @@
-use crate::window_internal;
+mod window_internal;
+mod glutin_interface;
 
 use glutin::event::ElementState;
 use glutin::event::MouseButton;
 use window_internal::WindowInternal;
 
-pub struct Window<T: 'static> {
+pub struct WindowImpl<T: 'static> {
     internal: Option<WindowInternal<T>>,
 }
 
-impl<T: 'static> Window<T> {
+impl<T: 'static> WindowImpl<T> {
     pub fn new(user_data: T, title: &str, width: usize, height: usize) -> Window<T> {
         let internal = WindowInternal::new(user_data, title, width, height);
-        Window {
+        WindowImpl {
             internal: Some(internal),
         }
     }
@@ -27,4 +28,12 @@ impl<T: 'static> Window<T> {
     pub fn show(self) {
         self.internal.unwrap().show();
     }
+}
+
+trait Window {
+    pub fn add_mouse_input_handler(
+        &mut Self,
+        handler: fn(MouseButton, ElementState, (usize, usize)),
+    );
+    pub fn show(self);
 }

@@ -1,4 +1,4 @@
-use crate::glutin_interface;
+use crate::window::glutin_interface;
 
 use glutin::event::ElementState;
 use glutin::event::MouseButton;

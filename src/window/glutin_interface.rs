@@ -1,5 +1,5 @@
 //use crate::window;
-use crate::window_internal;
+use crate::window::window_internal;
 use core::ffi::c_void;
 use gl::types::GLuint;
 use glutin::event::Event;
@@ -9,6 +9,7 @@ use glutin::event_loop::EventLoop;
 use glutin::window::WindowBuilder;
 use glutin::ContextBuilder;
 use glutin::ContextWrapper;
+use glutin::dpi::PhysicalSize;
 use window_internal::WindowInternal;
 
 pub struct GlutinInterface {
@@ -24,7 +25,7 @@ impl GlutinInterface {
         let event_loop = EventLoop::new();
         let window_builder = WindowBuilder::new()
             .with_title(title)
-            .with_inner_size(glutin::dpi::LogicalSize::new(width as u32, height as u32))
+            .with_inner_size(PhysicalSize::new(width as u32, height as u32))
             .with_visible(false)
             .with_resizable(false);
         let context_wrapper = ContextBuilder::new()
