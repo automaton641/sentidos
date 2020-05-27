@@ -1,7 +1,8 @@
 //use crate::window;
-use crate::window::window_internal;
+use crate::window::Window;
 use core::ffi::c_void;
 use gl::types::GLuint;
+use glutin::dpi::PhysicalSize;
 use glutin::event::Event;
 use glutin::event::WindowEvent;
 use glutin::event_loop::ControlFlow;
@@ -9,8 +10,6 @@ use glutin::event_loop::EventLoop;
 use glutin::window::WindowBuilder;
 use glutin::ContextBuilder;
 use glutin::ContextWrapper;
-use glutin::dpi::PhysicalSize;
-use window_internal::WindowInternal;
 
 pub struct GlutinInterface {
     _framebuffer: GLuint,
@@ -54,7 +53,7 @@ impl GlutinInterface {
             current_context_wrapper: Some(current_context_wrapper),
         }
     }
-    pub fn show<T: 'static>(mut self, mut internal: WindowInternal<T>) {
+    pub fn show<T: 'static>(mut self, mut window: Window<T>) {
         let event_loop = self.event_loop.take().unwrap();
         let current_context = self.current_context_wrapper.take().unwrap();
         current_context.window().set_visible(true);
@@ -69,14 +68,16 @@ impl GlutinInterface {
                     }
                     WindowEvent::MouseInput { state, button, .. } => {
                         //println!("MouseInput");
-                        for handler in &internal.mouse_input_handlers {
-                            handler(button, state, internal.mouse_position);
+                        let mouse_position = window.mouse_position;
+                        let mouse_input_handlers = window.mouse_input_handlers.take().unwrap();
+                        for handler in &mouse_input_handlers {
+                            handler(&mut window, button, state, mouse_position);
                         }
                     }
                     WindowEvent::CursorMoved { position, .. } => {
                         let mouse_position: (f64, f64) = position.into();
-                        internal.mouse_position.0 = mouse_position.0 as usize;
-                        internal.mouse_position.1 = mouse_position.1 as usize;
+                        window.mouse_position.0 = mouse_position.0 as usize;
+                        window.mouse_position.1 = mouse_position.1 as usize;
                         //println!("position {}, {}", window.mouse_position.0, window.mouse_position.1)
                     }
                     _ => (),
@@ -87,22 +88,22 @@ impl GlutinInterface {
                             gl::TEXTURE_2D,
                             0,
                             gl::RGBA8 as i32,
-                            internal.width as i32,
-                            internal.height as i32,
+                            window.width as i32,
+                            window.height as i32,
                             0,
                             gl::RGBA,
                             gl::UNSIGNED_BYTE,
-                            internal.pixels.as_ptr() as *const c_void,
+                            window.pixels.as_ptr() as *const c_void,
                         );
                         gl::BlitFramebuffer(
                             0,
                             0,
-                            internal.width as i32,
-                            internal.height as i32,
+                            window.width as i32,
+                            window.height as i32,
                             0,
                             0,
-                            internal.width as i32,
-                            internal.height as i32,
+                            window.width as i32,
+                            window.height as i32,
                             gl::COLOR_BUFFER_BIT,
                             gl::NEAREST,
                         );
