@@ -10,6 +10,8 @@ use glutin::event_loop::EventLoop;
 use glutin::window::WindowBuilder;
 use glutin::ContextBuilder;
 use glutin::ContextWrapper;
+use std::time::Duration;
+use std::time::Instant;
 
 pub struct GlutinInterface {
     _framebuffer: GLuint,
@@ -57,8 +59,26 @@ impl GlutinInterface {
         let event_loop = self.event_loop.take().unwrap();
         let current_context = self.current_context_wrapper.take().unwrap();
         current_context.window().set_visible(true);
+        let mut delta = window.update_time.unwrap();
+        let mut last_update_instant = Instant::now();
         event_loop.run(move |event, _, control_flow| {
-            *control_flow = ControlFlow::Wait;
+            match window.update {
+                Some(update) => {
+                    delta = Instant::now() - last_update_instant;
+                    if delta >= window.update_time.unwrap() {
+                        update(&mut window);
+                        delta = Duration::from_secs(0);
+                        last_update_instant = Instant::now();
+                        if window.must_draw {
+                            current_context.window().request_redraw();
+                            window.must_draw = false;
+                        }
+                    }
+                    *control_flow =
+                        ControlFlow::WaitUntil(last_update_instant + window.update_time.unwrap());
+                }
+                None => *control_flow = ControlFlow::Wait,
+            }
             match event {
                 Event::LoopDestroyed => return,
                 Event::WindowEvent { event, .. } => match event {
@@ -69,10 +89,14 @@ impl GlutinInterface {
                     WindowEvent::MouseInput { state, button, .. } => {
                         //println!("MouseInput");
                         let mouse_position = window.mouse_position;
-                        let mouse_input_handlers = window.mouse_input_handlers.take().unwrap();
+                        let mouse_input_handlers = window
+                            .mouse_input_handlers
+                            .take()
+                            .expect("mouse_input_handlers is None");
                         for handler in &mouse_input_handlers {
                             handler(&mut window, button, state, mouse_position);
                         }
+                        window.mouse_input_handlers = Some(mouse_input_handlers);
                     }
                     WindowEvent::CursorMoved { position, .. } => {
                         let mouse_position: (f64, f64) = position.into();
@@ -83,6 +107,7 @@ impl GlutinInterface {
                     _ => (),
                 },
                 Event::RedrawRequested(_) => {
+                    println!("drawing");
                     unsafe {
                         gl::TexImage2D(
                             gl::TEXTURE_2D,
